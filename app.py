@@ -1,22 +1,47 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # === НАСТРОЙКА: Вставьте сюда ID вашей Google Таблицы ===
 GOOGLE_SHEET_ID = "1XSzNGtQQJBvRTfH0YXlM8j7Z3RS9QalJWIezipdwSzs"
-GOOGLE_SHEET_NAME = "Общая_Вакансии"  # Имя листа, откуда брать данные
+GOOGLE_SHEET_NAME = "Общая_Вакансии"
 
-# Формируем URL для экспорта в CSV
-url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={GOOGLE_SHEET_NAME}"
+# Настройка доступа к Google Таблице
+@st.cache_resource
+def get_gspread_client():
+    # Это ключ сервисного аккаунта — вы его получите ниже
+    creds_dict = {
+        "type": "service_account",
+        "project_id": "your-project-id",
+        "private_key_id": "your-private-key-id",
+        "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+        "client_email": "your-service-account@your-project.iam.gserviceaccount.com",
+        "client_id": "your-client-id",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/your-service-account%40your-project.iam.gserviceaccount.com"
+    }
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+    return client
 
 @st.cache_data(ttl=300)  # кэш на 5 минут
 def load_data():
     try:
-        # Пробуем загрузить с UTF-8
-        df = pd.read_csv(url, encoding='utf-8', on_bad_lines='skip')
-        # Если не получилось — пробуем latin1
-        if df.empty:
-            df = pd.read_csv(url, encoding='latin1', on_bad_lines='skip')
+        client = get_gspread_client()
+        sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(GOOGLE_SHEET_NAME)
+        
+        # Получаем все данные как список списков
+        data = sheet.get_all_values()
+        if not data:
+            return pd.DataFrame()
+        
+        # Создаем DataFrame
+        df = pd.DataFrame(data[1:], columns=data[0])
         
         # Очистка колонок
         df.columns = df.columns.str.strip()
@@ -118,7 +143,7 @@ else:
             'Всего': len(recruiter_df),
             'В работе': len(recruiter_df[recruiter_df['Статус'] == 'В работе']),
             'В ожидании': len(recruiter_df[recruiter_df['Статус'] == 'В ожидании']),
-            'Приостановлены': len(recruiter_df[recruiter_df['Статус'] == 'Приостановлена'])
+            'Приостановлены': len(recruiter_df[recруiter_df['Статус'] == 'Приостановлена'])
         }
 
     recruiter_summary = []
