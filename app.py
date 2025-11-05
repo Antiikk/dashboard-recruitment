@@ -4,10 +4,8 @@ from datetime import datetime, timedelta
 import numpy as np
 
 # === НАСТРОЙКА: Вставьте сюда ID вашей Google Таблицы ===
-# Пример ссылки: https://docs.google.com/spreadsheets/d/1Abc123.../edit#gid=0
-# ID — это часть между /d/ и /edit
 GOOGLE_SHEET_ID = "1XSzNGtQQJBvRTfH0YXlM8j7Z3RS9QalJWIezipdwSzs"
-GOOGLE_SHEET_NAME = "Данные"  # имя листа
+GOOGLE_SHEET_NAME = "Данные"
 
 # Формируем URL для экспорта в CSV
 url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={GOOGLE_SHEET_NAME}"
@@ -15,7 +13,12 @@ url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx=out
 @st.cache_data(ttl=300)  # кэш на 5 минут
 def load_data():
     try:
-        df = pd.read_csv(url, on_bad_lines='skip')
+        # Пробуем загрузить с UTF-8
+        df = pd.read_csv(url, encoding='utf-8', on_bad_lines='skip')
+        # Если не получилось — пробуем latin1
+        if df.empty:
+            df = pd.read_csv(url, encoding='latin1', on_bad_lines='skip')
+        
         # Очистка колонок
         df.columns = df.columns.str.strip()
         # Приведение даты к формату
@@ -116,7 +119,7 @@ else:
             'Всего': len(recruiter_df),
             'В работе': len(recruiter_df[recruiter_df['Статус'] == 'в работе']),
             'В ожидании': len(recruiter_df[recruiter_df['Статус'] == 'в ожидании']),
-            'Приостановлены': len(recruiter_df[recruiter_df['Статус'] == 'приостановлена'])
+            'Приостановлены': len(recruiter_df[recруiter_df['Статус'] == 'приостановлена'])
         }
 
     recruiter_summary = []
