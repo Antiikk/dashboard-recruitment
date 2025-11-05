@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-import numpy as np
 
 # === НАСТРОЙКА: Вставьте сюда ID вашей Google Таблицы ===
 GOOGLE_SHEET_ID = "1XSzNGtQQJBvRTfH0YXlM8j7Z3RS9QalJWIezipdwSzs"
-GOOGLE_SHEET_NAME = "Данные"
+GOOGLE_SHEET_NAME = "Общая_Вакансии"  # Имя листа, откуда брать данные
 
 # Формируем URL для экспорта в CSV
 url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={GOOGLE_SHEET_NAME}"
@@ -22,8 +21,8 @@ def load_data():
         # Очистка колонок
         df.columns = df.columns.str.strip()
         # Приведение даты к формату
-        if 'Дата создания' in df.columns:
-            df['Дата создания'] = pd.to_datetime(df['Дата создания'], dayfirst=True, errors='coerce')
+        if 'Дата заявки' in df.columns:
+            df['Дата заявки'] = pd.to_datetime(df['Дата заявки'], dayfirst=True, errors='coerce')
         return df
     except Exception as e:
         st.error(f"Ошибка загрузки данных: {e}")
@@ -44,9 +43,9 @@ else:
     current_year = today.year
 
     # Добавляем колонки для фильтрации
-    df['Неделя'] = df['Дата создания'].dt.isocalendar().week
-    df['Месяц'] = df['Дата создания'].dt.month
-    df['Год'] = df['Дата создания'].dt.year
+    df['Неделя'] = df['Дата заявки'].dt.isocalendar().week
+    df['Месяц'] = df['Дата заявки'].dt.month
+    df['Год'] = df['Дата заявки'].dt.year
 
     # Фильтр только по нужным рекрутерам
     target_recruiters = ['Скороходов А.', 'Просянникова П.', 'Березняк О.']
@@ -59,7 +58,7 @@ else:
 
     def get_counts(data_frame, period_filter=None):
         if period_filter == 'today':
-            data_frame = data_frame[data_frame['Дата создания'].dt.normalize() == today]
+            data_frame = data_frame[data_frame['Дата заявки'].dt.normalize() == today]
         elif period_filter == 'week':
             data_frame = data_frame[
                 (data_frame['Неделя'] == current_week) &
@@ -71,9 +70,9 @@ else:
                 (data_frame['Год'] == current_year)
             ]
         total = len(data_frame)
-        in_work = len(data_frame[data_frame['Статус'] == 'в работе'])
-        pending = len(data_frame[data_frame['Статус'] == 'в ожидании'])
-        paused = len(data_frame[data_frame['Статус'] == 'приостановлена'])
+        in_work = len(data_frame[data_frame['Статус'] == 'В работе'])
+        pending = len(data_frame[data_frame['Статус'] == 'В ожидании'])
+        paused = len(data_frame[data_frame['Статус'] == 'Приостановлена'])
         return total, in_work, pending, paused
 
     periods = {
@@ -104,7 +103,7 @@ else:
 
     def get_recruiter_stats(recruiter_df, period_filter=None):
         if period_filter == 'today':
-            recruiter_df = recruiter_df[recruiter_df['Дата создания'].dt.normalize() == today]
+            recruiter_df = recruiter_df[recruiter_df['Дата заявки'].dt.normalize() == today]
         elif period_filter == 'week':
             recruiter_df = recruiter_df[
                 (recruiter_df['Неделя'] == current_week) &
@@ -117,16 +116,16 @@ else:
             ]
         return {
             'Всего': len(recruiter_df),
-            'В работе': len(recruiter_df[recruiter_df['Статус'] == 'в работе']),
-            'В ожидании': len(recruiter_df[recruiter_df['Статус'] == 'в ожидании']),
-            'Приостановлены': len(recruiter_df[recruiter_df['Статус'] == 'приостановлена'])
+            'В работе': len(recruiter_df[recruiter_df['Статус'] == 'В работе']),
+            'В ожидании': len(recruiter_df[recruiter_df['Статус'] == 'В ожидании']),
+            'Приостановлены': len(recruiter_df[recruiter_df['Статус'] == 'Приостановлена'])
         }
 
     recruiter_summary = []
     for recruiter in target_recruiters:
         r_df = df_team[df_team['Рекрутер'] == recruiter]
         stats_now = get_recruiter_stats(r_df, 'today')
-        stats_week = get_recруiter_stats(r_df, 'week')
+        stats_week = get_recruiter_stats(r_df, 'week')
         stats_month = get_recruiter_stats(r_df, 'month')
         recruiter_summary.append({
             'Рекрутер': recruiter,
@@ -142,11 +141,11 @@ else:
     st.dataframe(recruiter_df, use_container_width=True)
 
     # -----------------------------
-    # Дополнительно: средний срок в работе (если есть "Дата закрытия")
+    # Дополнительно: средний срок в работе (если есть "Дата закрытия / холда")
     # -----------------------------
-    if 'Дата закрытия' in df.columns:
-        df_active = df[df['Статус'] == 'в работе'].copy()
+    if 'Дата закрытия / холда' in df.columns:
+        df_active = df[df['Статус'] == 'В работе'].copy()
         if not df_active.empty:
-            df_active['Срок дней'] = (today - df_active['Дата создания']).dt.days
+            df_active['Срок дней'] = (today - df_active['Дата заявки']).dt.days
             avg_days = df_active['Срок дней'].mean()
             st.metric("Средний срок вакансии «в работе» (дни)", f"{avg_days:.1f}")
