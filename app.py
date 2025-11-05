@@ -119,14 +119,14 @@ else:
             'Всего': len(recruiter_df),
             'В работе': len(recruiter_df[recruiter_df['Статус'] == 'в работе']),
             'В ожидании': len(recruiter_df[recruiter_df['Статус'] == 'в ожидании']),
-            'Приостановлены': len(recruiter_df[recруiter_df['Статус'] == 'приостановлена'])
+            'Приостановлены': len(recruiter_df[recruiter_df['Статус'] == 'приостановлена'])
         }
 
     recruiter_summary = []
     for recruiter in target_recruiters:
         r_df = df_team[df_team['Рекрутер'] == recruiter]
         stats_now = get_recruiter_stats(r_df, 'today')
-        stats_week = get_recruiter_stats(r_df, 'week')
+        stats_week = get_recруiter_stats(r_df, 'week')
         stats_month = get_recruiter_stats(r_df, 'month')
         recruiter_summary.append({
             'Рекрутер': recruiter,
