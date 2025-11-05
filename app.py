@@ -3,36 +3,39 @@ import pandas as pd
 from datetime import datetime, timedelta
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import os
+import json
 
 # === НАСТРОЙКА: Вставьте сюда ID вашей Google Таблицы ===
 GOOGLE_SHEET_ID = "1XSzNGtQQJBvRTfH0YXlM8j7Z3RS9QalJWIezipdwSzs"
 GOOGLE_SHEET_NAME = "Общая_Вакансии"
 
-# Настройка доступа к Google Таблице
+# Настройка доступа к Google Таблице через переменную окружения
 @st.cache_resource
 def get_gspread_client():
-    # Это ключ сервисного аккаунта — вы его получите ниже
-    creds_dict = {
-        "type": "service_account",
-        "project_id": "your-project-id",
-        "private_key_id": "your-private-key-id",
-        "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
-        "client_email": "your-service-account@your-project.iam.gserviceaccount.com",
-        "client_id": "your-client-id",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/your-service-account%40your-project.iam.gserviceaccount.com"
-    }
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
-    return client
+    # Читаем ключ из переменной окружения
+    creds_json_str = os.getenv("GOOGLE_CREDENTIALS")
+    if not creds_json_str:
+        st.error("Не найдены учетные данные Google. Проверьте настройки секретов.")
+        return None
+    
+    try:
+        creds_dict = json.loads(creds_json_str)
+        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        client = gspread.authorize(creds)
+        return client
+    except Exception as e:
+        st.error(f"Ошибка авторизации Google: {e}")
+        return None
 
 @st.cache_data(ttl=300)  # кэш на 5 минут
 def load_data():
     try:
         client = get_gspread_client()
+        if not client:
+            return pd.DataFrame()
+        
         sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(GOOGLE_SHEET_NAME)
         
         # Получаем все данные как список списков
@@ -143,7 +146,7 @@ else:
             'Всего': len(recruiter_df),
             'В работе': len(recruiter_df[recruiter_df['Статус'] == 'В работе']),
             'В ожидании': len(recruiter_df[recruiter_df['Статус'] == 'В ожидании']),
-            'Приостановлены': len(recruiter_df[recруiter_df['Статус'] == 'Приостановлена'])
+            'Приостановлены': len(recruiter_df[recruiter_df['Статус'] == 'Приостановлена'])
         }
 
     recruiter_summary = []
