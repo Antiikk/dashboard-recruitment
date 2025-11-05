@@ -6,7 +6,7 @@ import numpy as np
 # === НАСТРОЙКА: Вставьте сюда ID вашей Google Таблицы ===
 # Пример ссылки: https://docs.google.com/spreadsheets/d/1Abc123.../edit#gid=0
 # ID — это часть между /d/ и /edit
-GOOGLE_SHEET_ID = "https://docs.google.com/spreadsheets/d/1XSzNGtQQJBvRTfH0YXlM8j7Z3RS9QalJWIezipdwSzs/edit?usp=sharing"
+GOOGLE_SHEET_ID = "1XSzNGtQQJBvRTfH0YXlM8j7Z3RS9QalJWIezipdwSzs"
 GOOGLE_SHEET_NAME = "Данные"  # имя листа
 
 # Формируем URL для экспорта в CSV
